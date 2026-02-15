@@ -1,4 +1,4 @@
-function syncModelProfilesAppendOnly() {
+function syncModelProfilesSmart() {
   const SUPABASE_URL = "PASTE_YOUR_SUPABASE_URL_HERE";
   const TABLE = "model_profiles";
 
@@ -18,7 +18,7 @@ function syncModelProfilesAppendOnly() {
     "cover_photo","user_id","created_at","updated_at"
   ];
 
-  const url = `${SUPABASE_URL}/rest/v1/${TABLE}?select=${COLUMNS.join(",")}&order=created_at.asc`;
+  const url = `${SUPABASE_URL}/rest/v1/${TABLE}?select=${COLUMNS.join(",")}`;
 
   const res = UrlFetchApp.fetch(url, {
     headers: {
@@ -28,37 +28,61 @@ function syncModelProfilesAppendOnly() {
   });
 
   const data = JSON.parse(res.getContentText());
-  if (!data.length) return;
-
   const sheet = SpreadsheetApp.getActive().getActiveSheet();
 
   /* ---------- FORCE HEADER SYNC ---------- */
-  const existingHeader = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  sheet.getRange(1, 1, 1, COLUMNS.length).setValues([COLUMNS]);
 
-  const headerMismatch =
-    existingHeader.length !== COLUMNS.length ||
-    existingHeader.some((h, i) => h !== COLUMNS[i]);
-
-  if (headerMismatch) {
-    sheet.clear();
-    sheet.getRange(1, 1, 1, COLUMNS.length).setValues([COLUMNS]);
-  }
-
-  /* ---------- GET EXISTING MODEL_CODES ---------- */
   const lastRow = sheet.getLastRow();
 
-  const existingModelCodes = new Set(
-    lastRow > 1
-      ? sheet.getRange(2, 1, lastRow - 1, 1).getValues().flat()
-      : []
-  );
+  /* ---------- Map existing rows by model_code ---------- */
+  const existingMap = {};
 
-  /* ---------- APPEND NEW ---------- */
+  if (lastRow > 1) {
+    const existingData = sheet
+      .getRange(2, 1, lastRow - 1, COLUMNS.length)
+      .getValues();
+
+    existingData.forEach((row, index) => {
+      const modelCode = row[0];
+      if (modelCode) {
+        existingMap[modelCode] = {
+          rowIndex: index + 2,
+          values: row
+        };
+      }
+    });
+  }
+
   const newRows = [];
 
-  data.forEach(row => {
-    if (!existingModelCodes.has(row.model_code)) {
-      newRows.push(COLUMNS.map(c => formatValue(row[c])));
+  data.forEach(record => {
+    const modelCode = record.model_code;
+
+    if (!modelCode) return;
+
+    if (existingMap[modelCode]) {
+      // -------- UPDATE EXISTING --------
+      const sheetRow = existingMap[modelCode];
+      const updatedRow = [...sheetRow.values];
+
+      COLUMNS.forEach((col, colIndex) => {
+        const newValue = formatValue(record[col]);
+
+        // DO NOT overwrite if new value is blank
+        if (newValue !== "" && newValue !== null) {
+          updatedRow[colIndex] = newValue;
+        }
+      });
+
+      sheet
+        .getRange(sheetRow.rowIndex, 1, 1, COLUMNS.length)
+        .setValues([updatedRow]);
+
+    } else {
+      // -------- APPEND NEW --------
+      const rowData = COLUMNS.map(c => formatValue(record[c]));
+      newRows.push(rowData);
     }
   });
 
@@ -72,9 +96,9 @@ function syncModelProfilesAppendOnly() {
 /* ---------- FORMATTER ---------- */
 function formatValue(value) {
   if (Array.isArray(value)) {
-    return value.map(v =>
-      typeof v === "object" ? JSON.stringify(v) : v
-    ).join(", ");
+    return value
+      .map(v => typeof v === "object" ? JSON.stringify(v) : v)
+      .join(", ");
   }
 
   if (typeof value === "object" && value !== null) {

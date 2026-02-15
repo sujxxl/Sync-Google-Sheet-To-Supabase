@@ -5,22 +5,38 @@ function syncModelProfilesAppendOnly() {
   // ⚠️ SERVICE ROLE KEY (admin access)
   const SERVICE_ROLE_KEY = "PASTE_YOUR_SERVICE_ROLE_KEY_HERE";
 
-  /* -------- Pretty & Logical Column Order -------- */
+  /* -------- Column Order (MODEL CODE FIRST) -------- */
   const COLUMNS = [
-    // identity
-    "id", "model_code", "status", "category",
+    // primary identifier
+    "model_code",
+    "id",
+
+    // status / type
+    "status",
+    "category",
 
     // personal
-    "full_name", "gender", "dob", "nationality", "skin_tone",
+    "full_name",
+    "gender",
+    "dob",
+    "nationality",
+    "skin_tone",
 
     // contact
-    "email", "phone",
-    "country", "state", "city",
+    "email",
+    "phone",
+    "country",
+    "state",
+    "city",
 
     // physical
-    "height_feet", "height_inches",
-    "bust_chest", "waist", "hips",
-    "shoe_size", "size",
+    "height_feet",
+    "height_inches",
+    "bust_chest",
+    "waist",
+    "hips",
+    "shoe_size",
+    "size",
 
     // experience
     "experience_level",
@@ -35,7 +51,8 @@ function syncModelProfilesAppendOnly() {
     "brands",
 
     // skills
-    "languages", "skills",
+    "languages",
+    "skills",
 
     // media
     "instagram",
@@ -65,13 +82,13 @@ function syncModelProfilesAppendOnly() {
 
   const sheet = SpreadsheetApp.getActive().getActiveSheet();
 
-  /* ---------- Setup header if empty ---------- */
+  /* ---------- Add header if empty ---------- */
   if (sheet.getLastRow() === 0) {
     sheet.appendRow(COLUMNS);
   }
 
-  /* ---------- Existing IDs ---------- */
-  const existingIds = new Set(
+  /* ---------- Existing MODEL_CODES ---------- */
+  const existingModelCodes = new Set(
     sheet
       .getRange(2, 1, Math.max(sheet.getLastRow() - 1, 0), 1)
       .getValues()
@@ -79,11 +96,11 @@ function syncModelProfilesAppendOnly() {
       .filter(Boolean)
   );
 
-  /* ---------- Append only new rows ---------- */
+  /* ---------- Append only NEW rows ---------- */
   const newRows = [];
 
   data.forEach(row => {
-    if (!existingIds.has(row.id)) {
+    if (!existingModelCodes.has(row.model_code)) {
       newRows.push(COLUMNS.map(c => formatValue(row[c])));
     }
   });

@@ -1,16 +1,16 @@
-function syncSupabase() {
+function syncSupabaseSelectedColumns() {
   const SUPABASE_URL = "https://PROJECT_ID.supabase.co";
-  const TABLE = "models"; // change this
   const API_KEY = "PUBLIC_ANON_KEY";
 
-  const url = `${SUPABASE_URL}/rest/v1/${TABLE}?select=*`;
+  // 👇 choose columns here (comma-separated)
+  const COLUMNS = "id,full_name,instagram,status";
+
+  const url = `${SUPABASE_URL}/rest/v1/models?select=${COLUMNS}`;
 
   const res = UrlFetchApp.fetch(url, {
-    method: "get",
     headers: {
       apikey: API_KEY,
-      Authorization: `Bearer ${API_KEY}`,
-      "Content-Type": "application/json"
+      Authorization: `Bearer ${API_KEY}`
     }
   });
 
@@ -20,10 +20,11 @@ function syncSupabase() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   sheet.clear();
 
-  const headers = Object.keys(data[0]);
+  // keep column order exactly as you defined
+  const headers = COLUMNS.split(",");
   sheet.appendRow(headers);
 
-  data.forEach(row =>
-    sheet.appendRow(headers.map(h => row[h] ?? ""))
-  );
+  data.forEach(row => {
+    sheet.appendRow(headers.map(h => row[h] ?? ""));
+  });
 }

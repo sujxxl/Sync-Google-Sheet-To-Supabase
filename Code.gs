@@ -1,4 +1,4 @@
-function syncModelProfiles() {
+function syncModelProfilesDirect() {
   const SUPABASE_URL = "https://PROJECT_ID.supabase.co";
   const API_KEY = "PUBLIC_ANON_KEY";
 
@@ -14,7 +14,7 @@ function syncModelProfiles() {
   ];
 
   const url =
-    `${SUPABASE_URL}/rest/v1/model_profiles_sheets?select=${COLUMNS.join(",")}`;
+    `${SUPABASE_URL}/rest/v1/model_profiles?select=${COLUMNS.join(",")}`;
 
   const res = UrlFetchApp.fetch(url, {
     headers: {

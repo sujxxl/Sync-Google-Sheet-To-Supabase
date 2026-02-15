@@ -4,71 +4,21 @@ function syncModelProfilesAppendOnly() {
 
   // ⚠️ SERVICE ROLE KEY (admin access)
   const SERVICE_ROLE_KEY = "PASTE_YOUR_SERVICE_ROLE_KEY_HERE";
-
-  /* -------- Column Order (MODEL CODE FIRST) -------- */
+  
   const COLUMNS = [
-    // primary identifier
-    "model_code",
-    "id",
-
-    // status / type
-    "status",
-    "category",
-
-    // personal
-    "full_name",
-    "gender",
-    "dob",
-    "nationality",
-    "skin_tone",
-
-    // contact
-    "email",
-    "phone",
-    "country",
-    "state",
-    "city",
-
-    // physical
-    "height_feet",
-    "height_inches",
-    "bust_chest",
-    "waist",
-    "hips",
-    "shoe_size",
-    "size",
-
-    // experience
-    "experience_level",
-    "ramp_walk_experience",
-    "ramp_walk_description",
-    "open_to_travel",
-    "overall_rating",
-
-    // commercial
-    "min_budget_half_day",
-    "min_budget_full_day",
-    "brands",
-
-    // skills
-    "languages",
-    "skills",
-
-    // media
-    "instagram",
-    "polaroids",
-    "portfolio_images",
-    "portfolio_videos",
-    "intro_video",
-    "cover_photo",
-
-    // meta
-    "user_id",
-    "created_at",
-    "updated_at"
+    "model_code","id","status","category",
+    "full_name","gender","dob","nationality","skin_tone",
+    "email","phone","country","state","city",
+    "height_feet","height_inches","bust_chest","waist","hips",
+    "shoe_size","size","experience_level","ramp_walk_experience",
+    "ramp_walk_description","open_to_travel","overall_rating",
+    "min_budget_half_day","min_budget_full_day","brands",
+    "languages","skills","instagram","polaroids",
+    "portfolio_images","portfolio_videos","intro_video",
+    "cover_photo","user_id","created_at","updated_at"
   ];
 
-  const url = `${SUPABASE_URL}/rest/v1/${TABLE}?select=${COLUMNS.join(",")}`;
+  const url = `${SUPABASE_URL}/rest/v1/${TABLE}?select=${COLUMNS.join(",")}&order=created_at.asc`;
 
   const res = UrlFetchApp.fetch(url, {
     headers: {
@@ -82,21 +32,28 @@ function syncModelProfilesAppendOnly() {
 
   const sheet = SpreadsheetApp.getActive().getActiveSheet();
 
-  /* ---------- Add header if empty ---------- */
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow(COLUMNS);
+  /* ---------- FORCE HEADER SYNC ---------- */
+  const existingHeader = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+  const headerMismatch =
+    existingHeader.length !== COLUMNS.length ||
+    existingHeader.some((h, i) => h !== COLUMNS[i]);
+
+  if (headerMismatch) {
+    sheet.clear();
+    sheet.getRange(1, 1, 1, COLUMNS.length).setValues([COLUMNS]);
   }
 
-  /* ---------- Existing MODEL_CODES ---------- */
+  /* ---------- GET EXISTING MODEL_CODES ---------- */
+  const lastRow = sheet.getLastRow();
+
   const existingModelCodes = new Set(
-    sheet
-      .getRange(2, 1, Math.max(sheet.getLastRow() - 1, 0), 1)
-      .getValues()
-      .flat()
-      .filter(Boolean)
+    lastRow > 1
+      ? sheet.getRange(2, 1, lastRow - 1, 1).getValues().flat()
+      : []
   );
 
-  /* ---------- Append only NEW rows ---------- */
+  /* ---------- APPEND NEW ---------- */
   const newRows = [];
 
   data.forEach(row => {
@@ -112,12 +69,12 @@ function syncModelProfilesAppendOnly() {
   }
 }
 
-/* ---------- helper ---------- */
+/* ---------- FORMATTER ---------- */
 function formatValue(value) {
   if (Array.isArray(value)) {
-    return value
-      .map(v => typeof v === "object" ? JSON.stringify(v) : v)
-      .join(", ");
+    return value.map(v =>
+      typeof v === "object" ? JSON.stringify(v) : v
+    ).join(", ");
   }
 
   if (typeof value === "object" && value !== null) {

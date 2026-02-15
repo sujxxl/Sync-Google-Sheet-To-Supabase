@@ -1,6 +1,7 @@
 function syncModelProfilesDirect() {
-  const SUPABASE_URL = "https://PROJECT_ID.supabase.co";
-  const API_KEY = "PUBLIC_ANON_KEY";
+  const SUPABASE_URL = "PASTE_YOUR_SUPABASE_URL_HERE";
+  const TABLE = "model_profiles";
+  const API_KEY = "PASTE_YOUR_SUPABASE_API_KEY_HERE";
 
   const COLUMNS = [
     "full_name","dob","gender","phone","email",
@@ -14,7 +15,7 @@ function syncModelProfilesDirect() {
   ];
 
   const url =
-    `${SUPABASE_URL}/rest/v1/model_profiles?select=${COLUMNS.join(",")}`;
+    `${SUPABASE_URL}/rest/v1/${TABLE}?select=${COLUMNS.join(",")}`;
 
   const res = UrlFetchApp.fetch(url, {
     headers: {
@@ -31,6 +32,22 @@ function syncModelProfilesDirect() {
   sheet.appendRow(COLUMNS);
 
   data.forEach(row => {
-    sheet.appendRow(COLUMNS.map(c => row[c] ?? ""));
+    sheet.appendRow(COLUMNS.map(c => formatValue(row[c])));
   });
+}
+
+/* ---------- helper ---------- */
+function formatValue(value) {
+  if (Array.isArray(value)) {
+    // arrays (languages, skills, brands, instagram)
+    return value
+      .map(v => typeof v === "object" ? JSON.stringify(v) : v)
+      .join(", ");
+  }
+
+  if (typeof value === "object" && value !== null) {
+    return JSON.stringify(value);
+  }
+
+  return value ?? "";
 }

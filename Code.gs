@@ -1,11 +1,20 @@
-function syncSupabaseSelectedColumns() {
+function syncModelProfiles() {
   const SUPABASE_URL = "https://PROJECT_ID.supabase.co";
   const API_KEY = "PUBLIC_ANON_KEY";
 
-  // 👇 choose columns here (comma-separated)
-  const COLUMNS = "id,full_name,instagram,status";
+  const COLUMNS = [
+    "full_name","dob","gender","phone","email",
+    "country","state","city","category","instagram",
+    "experience_level","languages","skills","open_to_travel",
+    "ramp_walk_experience","ramp_walk_description",
+    "height_feet","height_inches","bust_chest","waist","hips",
+    "shoe_size","status","model_code","overall_rating",
+    "min_budget_half_day","min_budget_full_day",
+    "size","nationality","brands","skin_tone"
+  ];
 
-  const url = `${SUPABASE_URL}/rest/v1/models?select=${COLUMNS}`;
+  const url =
+    `${SUPABASE_URL}/rest/v1/model_profiles_sheets?select=${COLUMNS.join(",")}`;
 
   const res = UrlFetchApp.fetch(url, {
     headers: {
@@ -17,14 +26,11 @@ function syncSupabaseSelectedColumns() {
   const data = JSON.parse(res.getContentText());
   if (!data.length) return;
 
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  const sheet = SpreadsheetApp.getActive().getActiveSheet();
   sheet.clear();
-
-  // keep column order exactly as you defined
-  const headers = COLUMNS.split(",");
-  sheet.appendRow(headers);
+  sheet.appendRow(COLUMNS);
 
   data.forEach(row => {
-    sheet.appendRow(headers.map(h => row[h] ?? ""));
+    sheet.appendRow(COLUMNS.map(c => row[c] ?? ""));
   });
 }

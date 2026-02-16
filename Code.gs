@@ -1,10 +1,8 @@
 function syncModelProfilesSmart() {
   const SUPABASE_URL = "PASTE_YOUR_SUPABASE_URL_HERE";
   const TABLE = "model_profiles";
-
-  // ⚠️ SERVICE ROLE KEY (admin access)
   const SERVICE_ROLE_KEY = "PASTE_YOUR_SERVICE_ROLE_KEY_HERE";
-  
+
   const COLUMNS = [
     "model_code","id","status","category",
     "full_name","gender","dob","nationality","skin_tone",
@@ -35,7 +33,7 @@ function syncModelProfilesSmart() {
 
   const lastRow = sheet.getLastRow();
 
-  /* ---------- Map existing rows by model_code ---------- */
+  /* ---------- Map existing rows by UUID (id column index = 1) ---------- */
   const existingMap = {};
 
   if (lastRow > 1) {
@@ -44,9 +42,9 @@ function syncModelProfilesSmart() {
       .getValues();
 
     existingData.forEach((row, index) => {
-      const modelCode = row[0];
-      if (modelCode) {
-        existingMap[modelCode] = {
+      const uuid = row[1]; // id column
+      if (uuid) {
+        existingMap[uuid] = {
           rowIndex: index + 2,
           values: row
         };
@@ -57,19 +55,18 @@ function syncModelProfilesSmart() {
   const newRows = [];
 
   data.forEach(record => {
-    const modelCode = record.model_code;
+    const uuid = record.id;
+    if (!uuid) return;
 
-    if (!modelCode) return;
-
-    if (existingMap[modelCode]) {
-      // -------- UPDATE EXISTING --------
-      const sheetRow = existingMap[modelCode];
+    if (existingMap[uuid]) {
+      // -------- UPDATE EXISTING (BY UUID) --------
+      const sheetRow = existingMap[uuid];
       const updatedRow = [...sheetRow.values];
 
       COLUMNS.forEach((col, colIndex) => {
         const newValue = formatValue(record[col]);
 
-        // DO NOT overwrite if new value is blank
+        // Do NOT overwrite if new value is blank
         if (newValue !== "" && newValue !== null) {
           updatedRow[colIndex] = newValue;
         }
@@ -80,7 +77,7 @@ function syncModelProfilesSmart() {
         .setValues([updatedRow]);
 
     } else {
-      // -------- APPEND NEW --------
+      // -------- APPEND NEW UUID --------
       const rowData = COLUMNS.map(c => formatValue(record[c]));
       newRows.push(rowData);
     }
